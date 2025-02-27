@@ -1,5 +1,4 @@
 import streamlit as st
-
 from langchain_community.document_loaders import PDFPlumberLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.vectorstores import InMemoryVectorStore
@@ -28,7 +27,6 @@ def upload_pdf(file):
 def load_pdf(file_path):
     loader = PDFPlumberLoader(file_path)
     documents = loader.load()
-
     return documents
 
 def split_text(documents):
@@ -37,7 +35,6 @@ def split_text(documents):
         chunk_overlap=200,
         add_start_index=True
     )
-
     return text_splitter.split_documents(documents)
 
 def index_docs(documents):
@@ -50,27 +47,24 @@ def answer_question(question, documents):
     context = "\n\n".join([doc.page_content for doc in documents])
     prompt = ChatPromptTemplate.from_template(template)
     chain = prompt | model
-
     return chain.invoke({"question": question, "context": context})
 
-uploaded_file = st.file_uploader(
-    "Upload PDF",
-    type="pdf",
-    accept_multiple_files=True
-)
+# Carica i file PDF (anche più di uno)
+uploaded_files = st.file_uploader("Upload PDF", type="pdf", accept_multiple_files=True)
 
-if uploaded_file:
-    upload_pdf(uploaded_file)
-    documents = load_pdf(pdfs_directory + uploaded_file.name)
-    chunked_documents = split_text(documents)
-    index_docs(chunked_documents)
+if uploaded_files:
+    # Per ogni file caricato, esegui le operazioni necessarie
+    for file in uploaded_files:
+        upload_pdf(file)
+        documents = load_pdf(pdfs_directory + file.name)
+        chunked_documents = split_text(documents)
+        index_docs(chunked_documents)
 
-    question = st.chat_input()
+    question = st.chat_input("Inserisci la tua domanda:")
 
     if question:
         st.chat_message("user").write(question)
         related_documents = retrieve_docs(question)
         answer = answer_question(question, related_documents)
         st.chat_message("assistant").write(answer)
-
 
